@@ -75,7 +75,8 @@ countries = read.csv("input_data/countries_codes_and_coordinates.csv")
 # check all jhu country names have corresponding country data
 jhu_country_list = names(jhu_merge)[grepl("_cases", names(jhu_merge))] %>% str_replace_all(., "_cases", "") 
 if (all(jhu_country_list %in% countries$jhu_ID)==FALSE) {
-  stop(paste0("Error: mapping data lacking for the following countries: ",jhu_country_list[(jhu_country_list %in% countries$jhu_ID)==FALSE]))
+  #stop(paste0("Error: mapping data lacking for the following countries: ",jhu_country_list[(jhu_country_list %in% countries$jhu_ID)==FALSE]))
+  warning(paste0("Error: mapping data lacking for the following countries: ",jhu_country_list[(jhu_country_list %in% countries$jhu_ID)==FALSE]))
 }
 
 collated_data = NULL
