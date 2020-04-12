@@ -6,8 +6,7 @@
 # https://rviews.rstudio.com/2019/10/09/building-interactive-world-maps-in-shiny/
 # https://github.com/rstudio/shiny-examples/tree/master/063-superzip-example
 
-#setwd("~/Dropbox/glab/cv/R/nCoV_tracker_USstates_UScouties")
-
+#setwd("~/Dropbox/glab/cv/R/fork/nCoV_tracker")
 
 # load required packages ####
 if(!require(magrittr)) install.packages("magrittr", repos = "http://cran.us.r-project.org")
@@ -438,7 +437,7 @@ region_cases_line_plot = function(cv_cases, start_point=c("Date", "Day of 100th 
   
   if (start_point=="Date") {
     g = ggplot(cv_cases, aes(x = date+offset, y = outcome, group = region, fill = region, #order = region,
-                             text = paste0(format(date, "%d %B %Y"), "\n", region, ": ",new_outcome))) + 
+                             text = paste0(format(date, "%d %B %Y"), "\n", region, ": ",outcome))) + 
       xlim(c(graph_start_date+offset,current_date+1+offset)) +
       xlab("Date")
   }
@@ -449,14 +448,14 @@ region_cases_line_plot = function(cv_cases, start_point=c("Date", "Day of 100th 
   if (start_point=="Day of 100th confirmed case") {
     cv_cases = subset( cv_cases, days_since_case100>0)
     #region = region[1:length( cv_cases$outcome)]
-    g = ggplot(cv_cases, aes(x = days_since_case100, y = outcome, fill = region, 
+    g = ggplot(cv_cases, aes(x = days_since_case100, y = outcome, group = region, fill = region, 
                              text = paste0("Day ",days_since_case100, "\n", region, ": ",outcome)))+
       xlab("Days since 100th confirmed case")
   }
   
   if (start_point=="Day of 10th death") {
     cv_cases = subset( cv_cases, days_since_death10>0)
-    g = ggplot(cv_cases, aes(x = days_since_death10, y = outcome, fill = region, 
+    g = ggplot(cv_cases, aes(x = days_since_death10, y = outcome, group = region, fill = region, 
                              text = paste0("Day ",days_since_death10, "\n", region, ": ",outcome))) +
       xlab("Days since 10th death")
   }
@@ -525,6 +524,8 @@ cv_cases = merge(cv_cases, countries, by = "country")
 cv_cases = cv_cases[order(cv_cases$date),]
 cv_cases$per100k = as.numeric(format(round(cv_cases$cases/(cv_cases$population/100000),1),nsmall=1))
 cv_cases$newper100k = as.numeric(format(round(cv_cases$new_cases/(cv_cases$population/100000),1),nsmall=1))
+cv_cases$deaths_per100k = as.numeric(format(round(cv_cases$deaths/(cv_cases$population/100000),1),nsmall=1))
+cv_cases$new_deaths_per100k = as.numeric(format(round(cv_cases$new_deaths/(cv_cases$population/100000),1),nsmall=1))
 cv_cases$activeper100k = as.numeric(format(round(cv_cases$active_cases/(cv_cases$population/100000),1),nsmall=1))
 cv_cases$million_pop = as.numeric(cv_cases$population>1e6)
 
@@ -664,9 +665,9 @@ current_date_states = as.Date(max(cv_cases_USstates$date),"%Y-%m-%d")
 # merge cv data with state data and extract key summary variables
 cv_cases_USstates = merge(cv_cases_USstates, states, by = "state")
 cv_cases_USstates = cv_cases_USstates[order(cv_cases_USstates$date),]
-#cv_cases_USstates$per1k = as.numeric(format(round(cv_cases_USstates$cases/((state_populations[as.character(cv_cases_USstates$state)])/1000),1),nsmall=1))
-#moved.down cv_cases_USstates$per1k = as.numeric(cv_cases_USstates$cases * 1000/(state_populations[as.character(cv_cases_USstates$state)]))
-#moved.down cv_cases_USstates$deaths_per1k = as.numeric(cv_cases_USstates$deaths * 1000/(state_populations[as.character(cv_cases_USstates$state)]))
+#cv_cases_USstates$per100k = as.numeric(format(round(cv_cases_USstates$cases/((state_populations[as.character(cv_cases_USstates$state)])/1000),1),nsmall=1))
+#moved.down cv_cases_USstates$per100k = as.numeric(cv_cases_USstates$cases * 100000/(state_populations[as.character(cv_cases_USstates$state)]))
+#moved.down cv_cases_USstates$deaths_per100k = as.numeric(cv_cases_USstates$deaths * 100000/(state_populations[as.character(cv_cases_USstates$state)]))
 #cv_cases_USstates$newper100k = as.numeric(format(round(cv_cases_USstates$new_cases/(state_populations[cv_cases_USstates$state]/100000),1),nsmall=1))
 #cv_cases_USstates$activeper100k = as.numeric(format(round(cv_cases_USstates$active_cases/(state_populations[cv_cases_USstates$state]/100000),1),nsmall=1))
 cv_cases_USstates$million_pop = as.numeric(state_populations[cv_cases_USstates$state]>1e6)
@@ -689,20 +690,20 @@ cv_cases_USstates <- cv_cases_USstates %>%
 #cv_cases_USstates <- cv_cases_USstates %>%
 #  group_by(state) %>%
 #  arrange(date) %>%
-#  mutate(new_per1k = per1k - lag(per1k, default = first(per1k))) %>%
+#  mutate(new_per100k = per100k - lag(per100k, default = first(per100k))) %>%
 #  ungroup()
 
 #cv_cases_USstates <- cv_cases_USstates %>%
 #  group_by(state) %>%
 #  arrange(date) %>%
-#  mutate(new_deaths_per1k = deaths_per1k - lag(deaths_per1k, default = first(deaths_per1k))) %>%
+#  mutate(new_deaths_per100k = deaths_per100k - lag(deaths_per100k, default = first(deaths_per100k))) %>%
 #  ungroup()
 
-cv_cases_USstates$per1k = as.numeric(cv_cases_USstates$cases * 1000/(state_populations[as.character(cv_cases_USstates$state)]))
-cv_cases_USstates$deaths_per1k = as.numeric(cv_cases_USstates$deaths * 1000/(state_populations[as.character(cv_cases_USstates$state)]))
+cv_cases_USstates$per100k = as.numeric(cv_cases_USstates$cases * 100000/(state_populations[as.character(cv_cases_USstates$state)]))
+cv_cases_USstates$deaths_per100k = as.numeric(cv_cases_USstates$deaths * 100000/(state_populations[as.character(cv_cases_USstates$state)]))
 
-cv_cases_USstates$new_per1k = as.numeric(cv_cases_USstates$new_cases * 1000/(state_populations[as.character(cv_cases_USstates$state)]))
-cv_cases_USstates$new_deaths_per1k = as.numeric(cv_cases_USstates$new_deaths * 1000/(state_populations[as.character(cv_cases_USstates$state)]))
+cv_cases_USstates$new_per100k = as.numeric(cv_cases_USstates$new_cases * 100000/(state_populations[as.character(cv_cases_USstates$state)]))
+cv_cases_USstates$new_deaths_per100k = as.numeric(cv_cases_USstates$new_deaths * 100000/(state_populations[as.character(cv_cases_USstates$state)]))
 
 cv_cases_USstates_subset <- cv_cases_USstates
 
@@ -733,7 +734,7 @@ cv_today_USstates_N <- cv_today_USstates_N[order(-cv_today_USstates_N$cases),]
 
 # write current day's data
 write.csv(cv_today_USstates %>% select(c(state, date, cases, deaths,
-                                per1k,
+                                per100k,
                                 days_since_case100, days_since_death10)), "input_data/coronavirus_today_state.csv")
 
 ## aggregate at continent level
@@ -845,27 +846,28 @@ names(state_cols2) = cls_names2
 
 # ------- order states by current number of cases per capita -------------
 #cv_cases_USstates_current <- subset(cv_cases_USstates, date == update_states)
-case_order_USstates.per1k <- order(cv_cases_USstates_current$per1k, decreasing = FALSE)
+case_order_USstates.per100k <- order(cv_cases_USstates_current$per100k, decreasing = FALSE)
 
-case_order_USstates.per1k_string <- str_pad(order(cv_cases_USstates_current$per1k, decreasing = FALSE), 2, pad = "0")
+case_order_USstates.per100k_string <- str_pad(order(cv_cases_USstates_current$per100k, decreasing = FALSE), 2, pad = "0")
 #hash - foo
-state2order.per1k = c(1:55)
-state2order.per1k_string <- str_pad(state2order.per1k, 2, pad = "0")
+state2order.per100k = c(1:length(state_populations_orig$state))
+#state2order.per100k = c(1:length(states))
+state2order.per100k_string <- str_pad(state2order.per100k, 2, pad = "0")
 
-names(state2order.per1k_string) <- cv_cases_USstates_current$state[case_order_USstates.per1k]
+names(state2order.per100k_string) <- cv_cases_USstates_current$state[case_order_USstates.per100k]
 
-cv_cases_USstates$state.per1k.ordered = paste(state2order.per1k_string[as.character(cv_cases_USstates$state)], cv_cases_USstates$state, sep = " ")
+cv_cases_USstates$state.per100k.ordered = paste(state2order.per100k_string[as.character(cv_cases_USstates$state)], cv_cases_USstates$state, sep = " ")
 
-state.ordered.per1k2state = cv_cases_USstates_current$state
-names(state.ordered.per1k2state) <- paste(state2order.per1k_string[as.character(state.ordered.per1k2state)], state.ordered.per1k2state, sep = " ")
+state.ordered.per100k2state = cv_cases_USstates_current$state
+names(state.ordered.per100k2state) <- paste(state2order.per100k_string[as.character(state.ordered.per100k2state)], state.ordered.per100k2state, sep = " ")
 
-state2state.ordered.per1k = names(state.ordered.per1k2state)
-names(state2state.ordered.per1k) <- cv_cases_USstates_current$state
+state2state.ordered.per100k = names(state.ordered.per100k2state)
+names(state2state.ordered.per100k) <- cv_cases_USstates_current$state
 
 # assign colours to states to ensure consistency between plots 
 #cls = rep(c(brewer.pal(8,"Dark2"), brewer.pal(10, "Paired"), brewer.pal(12, "Set3"), brewer.pal(8,"Set2"), brewer.pal(9, "Set1"), brewer.pal(8, "Accent"),  brewer.pal(9, "Pastel1"),  brewer.pal(8, "Pastel2")),3)
 
-cls_names3 = c(state2state.ordered.per1k[as.character(unique(cv_cases_USstates$state))]) #, as.character(unique(cv_cases_continent$continent)),"Global")
+cls_names3 = c(state2state.ordered.per100k[as.character(unique(cv_cases_USstates$state))]) #, as.character(unique(cv_cases_continent$continent)),"Global")
 state_cols3 = cls[1:length(cls_names3)]
 names(state_cols3) = cls_names3
 
@@ -932,9 +934,9 @@ current_date_counties = as.Date(max(cv_cases_UScounties$date),"%Y-%m-%d")
 # merge cv data with county data and extract key summary variables
 ###cv_cases_UScounties = merge(cv_cases_UScounties, counties_affected, by = "county")
 cv_cases_UScounties = cv_cases_UScounties[order(cv_cases_UScounties$date),]
-#cv_cases_UScounties$per1k = as.numeric(format(round(cv_cases_UScounties$cases/((county_populations[as.character(cv_cases_UScounties$state.county)])/1000),1),nsmall=1))
-#moved.down cv_cases_UScounties$per1k = as.numeric(cv_cases_UScounties$cases * 1000/(as.numeric(county_populations[as.character(cv_cases_UScounties$state.county)])))
-#moved.down cv_cases_UScounties$deaths_per1k = as.numeric(cv_cases_UScounties$deaths * 1000/(county_populations[as.character(cv_cases_UScounties$state.county)]))
+#cv_cases_UScounties$per100k = as.numeric(format(round(cv_cases_UScounties$cases/((county_populations[as.character(cv_cases_UScounties$state.county)])/1000),1),nsmall=1))
+#moved.down cv_cases_UScounties$per100k = as.numeric(cv_cases_UScounties$cases * 100000/(as.numeric(county_populations[as.character(cv_cases_UScounties$state.county)])))
+#moved.down cv_cases_UScounties$deaths_per100k = as.numeric(cv_cases_UScounties$deaths * 100000/(county_populations[as.character(cv_cases_UScounties$state.county)]))
 #cv_cases_UScounties$newper100k = as.numeric(format(round(cv_cases_UScounties$new_cases/(county_populations[cv_cases_UScounties$state.county]/100000),1),nsmall=1))
 #cv_cases_UScounties$activeper100k = as.numeric(format(round(cv_cases_UScounties$active_cases/(county_populations[cv_cases_UScounties$state.county]/100000),1),nsmall=1))
 cv_cases_UScounties$million_pop = as.numeric(county_populations[cv_cases_UScounties$state.county]>1e6)
@@ -957,20 +959,20 @@ cv_cases_UScounties <- cv_cases_UScounties %>%
 #cv_cases_UScounties <- cv_cases_UScounties %>%
 #  group_by(county) %>%
 #  arrange(date) %>%
-#  mutate(new_per1k = per1k - lag(per1k, default = first(per1k))) %>%
+#  mutate(new_per100k = per100k - lag(per100k, default = first(per100k))) %>%
 #  ungroup()
 
 #cv_cases_UScounties <- cv_cases_UScounties %>%
 #  group_by(county) %>%
 #  arrange(date) %>%
-#  mutate(new_deaths_per1k = deaths_per1k - lag(deaths_per1k, default = first(deaths_per1k))) %>%
+#  mutate(new_deaths_per100k = deaths_per100k - lag(deaths_per100k, default = first(deaths_per100k))) %>%
 #  ungroup()
 
-cv_cases_UScounties$per1k = as.numeric(cv_cases_UScounties$cases * 1000/(as.numeric(county_populations[as.character(cv_cases_UScounties$state.county)])))
-cv_cases_UScounties$deaths_per1k = as.numeric(cv_cases_UScounties$deaths * 1000/(as.numeric(county_populations[as.character(cv_cases_UScounties$state.county)])))
+cv_cases_UScounties$per100k = as.numeric(cv_cases_UScounties$cases * 100000/(as.numeric(county_populations[as.character(cv_cases_UScounties$state.county)])))
+cv_cases_UScounties$deaths_per100k = as.numeric(cv_cases_UScounties$deaths * 100000/(as.numeric(county_populations[as.character(cv_cases_UScounties$state.county)])))
 #ETHOW
-cv_cases_UScounties$new_per1k = as.numeric(cv_cases_UScounties$new_cases * 1000/(as.numeric(county_populations[as.character(cv_cases_UScounties$state.county)])))
-cv_cases_UScounties$new_deaths_per1k = as.numeric(cv_cases_UScounties$new_deaths * 1000/(as.numeric(county_populations[as.character(cv_cases_UScounties$state.county)])))
+cv_cases_UScounties$new_per100k = as.numeric(cv_cases_UScounties$new_cases * 100000/(as.numeric(county_populations[as.character(cv_cases_UScounties$state.county)])))
+cv_cases_UScounties$new_deaths_per100k = as.numeric(cv_cases_UScounties$new_deaths * 100000/(as.numeric(county_populations[as.character(cv_cases_UScounties$state.county)])))
 
 
 cv_cases_UScounties_subset <- cv_cases_UScounties
@@ -1000,7 +1002,7 @@ cv_today_UScounties_N <- cv_today_UScounties_N[order(-cv_today_UScounties_N$case
 
 # write current day's data
 write.csv(cv_today_UScounties %>% select(c(state.county, date, cases, deaths,
-                                per1k,
+                                per100k,
                                 days_since_case100, days_since_death10)), "input_data/coronavirus_today_state.county.csv")
 
 ## aggregate at continent level
@@ -1115,40 +1117,40 @@ names(county_cols4) = cls_names4
 
 # ------- order counties by current number of cases per capita -------------
 cv_cases_UScounties_current <- subset(cv_cases_UScounties, as.Date(date) == as.Date(update_counties))
-case_order_UScounties.per1k <- order(cv_cases_UScounties_current$per1k, decreasing = FALSE)
-case_order_UScounties.per1k.rev <- order(cv_cases_UScounties_current$per1k, decreasing = TRUE)
+case_order_UScounties.per100k <- order(cv_cases_UScounties_current$per100k, decreasing = FALSE)
+case_order_UScounties.per100k.rev <- order(cv_cases_UScounties_current$per100k, decreasing = TRUE)
 
-case_order_UScounties.per1k_string <- str_pad(case_order_UScounties.per1k, 2, pad = "0")
-case_order_UScounties.per1k.rev_string <- str_pad(case_order_UScounties.per1k.rev, 2, pad = "0")
-#case_order_UScounties.per1k_string <- str_pad(order(cv_cases_UScounties_current$per1k, decreasing = FALSE), 2, pad = "0")
-#case_order_UScounties.per1k.rev_string <- str_pad(order(cv_cases_UScounties_current$per1k, decreasing = TRUE), 2, pad = "0")
+case_order_UScounties.per100k_string <- str_pad(case_order_UScounties.per100k, 2, pad = "0")
+case_order_UScounties.per100k.rev_string <- str_pad(case_order_UScounties.per100k.rev, 2, pad = "0")
+#case_order_UScounties.per100k_string <- str_pad(order(cv_cases_UScounties_current$per100k, decreasing = FALSE), 2, pad = "0")
+#case_order_UScounties.per100k.rev_string <- str_pad(order(cv_cases_UScounties_current$per100k, decreasing = TRUE), 2, pad = "0")
 #hash - foo
-county2order.per1k = c(1:length(counties))
-county2order.per1k_string <- str_pad(county2order.per1k, 4, pad = "0")
-county2order.per1k.rev = c(1:length(counties))
-county2order.per1k.rev_string <- str_pad(county2order.per1k.rev, 4, pad = "0")
+county2order.per100k = c(1:length(counties))
+county2order.per100k_string <- str_pad(county2order.per100k, 4, pad = "0")
+county2order.per100k.rev = c(1:length(counties))
+county2order.per100k.rev_string <- str_pad(county2order.per100k.rev, 4, pad = "0")
 
-names(county2order.per1k_string) <- cv_cases_UScounties_current$state.county[case_order_UScounties.per1k]
-names(county2order.per1k.rev_string) <- cv_cases_UScounties_current$state.county[case_order_UScounties.per1k.rev]
+names(county2order.per100k_string) <- cv_cases_UScounties_current$state.county[case_order_UScounties.per100k]
+names(county2order.per100k.rev_string) <- cv_cases_UScounties_current$state.county[case_order_UScounties.per100k.rev]
 
-cv_cases_UScounties$state.county.per1k.ordered = paste(county2order.per1k_string[as.character(cv_cases_UScounties$state.county)], cv_cases_UScounties$state.county, sep = " ")
-cv_cases_UScounties$state.county.per1k.rev.ordered = paste(county2order.per1k.rev_string[as.character(cv_cases_UScounties$state.county)], cv_cases_UScounties$state.county, sep = " ")
+cv_cases_UScounties$state.county.per100k.ordered = paste(county2order.per100k_string[as.character(cv_cases_UScounties$state.county)], cv_cases_UScounties$state.county, sep = " ")
+cv_cases_UScounties$state.county.per100k.rev.ordered = paste(county2order.per100k.rev_string[as.character(cv_cases_UScounties$state.county)], cv_cases_UScounties$state.county, sep = " ")
 
-county.ordered.per1k2county = cv_cases_UScounties_current$state.county
-names(county.ordered.per1k2county) <- paste(county2order.per1k_string[as.character(county.ordered.per1k2county)], county.ordered.per1k2county, sep = " ")
+county.ordered.per100k2county = cv_cases_UScounties_current$state.county
+names(county.ordered.per100k2county) <- paste(county2order.per100k_string[as.character(county.ordered.per100k2county)], county.ordered.per100k2county, sep = " ")
 
-county2county.ordered.per1k = names(county.ordered.per1k2county)
-names(county2county.ordered.per1k) <- cv_cases_UScounties_current$state.county
+county2county.ordered.per100k = names(county.ordered.per100k2county)
+names(county2county.ordered.per100k) <- cv_cases_UScounties_current$state.county
 
-county.ordered.per1k.rev2county = cv_cases_UScounties_current$state.county
-names(county.ordered.per1k.rev2county) <- paste(county2order.per1k.rev_string[as.character(county.ordered.per1k.rev2county)], county.ordered.per1k.rev2county, sep = " ")
+county.ordered.per100k.rev2county = cv_cases_UScounties_current$state.county
+names(county.ordered.per100k.rev2county) <- paste(county2order.per100k.rev_string[as.character(county.ordered.per100k.rev2county)], county.ordered.per100k.rev2county, sep = " ")
 
-county2county.ordered.per1k.rev = names(county.ordered.per1k.rev2county)
-names(county2county.ordered.per1k.rev) <- cv_cases_UScounties_current$state.county
+county2county.ordered.per100k.rev = names(county.ordered.per100k.rev2county)
+names(county2county.ordered.per100k.rev) <- cv_cases_UScounties_current$state.county
 
 # assign colours to counties to ensure consistency between plots 
 #cls = rep(c(brewer.pal(8,"Dark2"), brewer.pal(10, "Paired"), brewer.pal(12, "Set3"), brewer.pal(8,"Set2"), brewer.pal(9, "Set1"), brewer.pal(8, "Accent"),  brewer.pal(9, "Pastel1"),  brewer.pal(8, "Pastel2")),3)
-cls_names5 = c(county2county.ordered.per1k[as.character(unique(cv_cases_UScounties$state.county))]) #, as.character(unique(cv_cases_continent$continent)),"Global")
+cls_names5 = c(county2county.ordered.per100k[as.character(unique(cv_cases_UScounties$state.county))]) #, as.character(unique(cv_cases_continent$continent)),"Global")
 county_cols5 = cls_counties[1:length(cls_names5)]
 names(county_cols5) = cls_names5
 #county_cols5[1:10]
@@ -1343,7 +1345,63 @@ ui <- navbarPage(theme = shinytheme("flatly"), collapsible = TRUE,
                             )
                           )
                  ),
+
                  
+                 #ethow_new0
+                 tabPanel("Region plots II",
+                          
+                          sidebarLayout(
+                            sidebarPanel(
+                              
+                              pickerInput("level_select0", "Level:",   
+                                          choices = c("Global", "Continent", "Country"), 
+                                          selected = c("Country"),
+                                          multiple = FALSE),
+                              
+                              pickerInput("region_select0", "Country/Region:",   
+                                          choices = as.character(cv_today_100[order(-cv_today_100$cases),]$country), 
+                                          options = list(`actions-box` = TRUE, `none-selected-text` = "Please make a selection!"),
+                                          selected = cv_today_100$country,
+                                          multiple = TRUE), 
+                            
+                              pickerInput("outcome_select0", "Outcome:",   
+                                          choices = c("Cases", "Deaths", "Cases per capita (per 100,000)", "Deaths per capita (per 100,000)"), 
+                                          selected = c("Cases"),
+                                          multiple = FALSE),
+                              
+                              pickerInput("start_date0", "Type of graph start date:",   
+                                          choices = c("Date", "Day of 100th confirmed case", "Day of 10th death"), 
+                                          options = list(`actions-box` = TRUE),
+                                          selected = "Date",
+                                          multiple = FALSE), 
+                              
+                              pickerInput("log_flag0", "Log scale:",   
+                                          choices = c("Off", "On"), 
+                                          options = list(`actions-box` = TRUE),
+                                          selected = "Off",
+                                          multiple = FALSE), 
+                              
+                              sliderInput("graph_start_date0",
+                                          "Graphing start date:",
+                                          min = as.Date(cv_min_date,"%Y-%m-%d"),
+                                          max = as.Date(current_date,"%Y-%m-%d"),
+                                          value=as.Date(cv_min_date),
+                                          timeFormat="%Y-%m-%d"),
+                              #"Select outcome, regions, and plotting start date from drop-down menues to update plots. Countries with at least 100 confirmed cases are included."
+                              "Select outcome, regions, and plotting start date from drop-down menues to update plots."
+                            ),
+                            
+                            mainPanel(
+                              tabsetPanel(
+                                tabPanel("New", plotlyOutput("region_cases_bar_plot_country")),
+                                tabPanel("Cumulative", plotlyOutput("region_cases_line_plot_country"))
+                                #tabPanel("Cumulative (log10)", log_flag = TRUE, plotlyOutput("region_cases_line_plot"))
+                              )
+                            )
+                          )
+                 ),
+                 
+                                  
                  #ethow_new
                  tabPanel("US State plots",
                           
@@ -1363,7 +1421,7 @@ ui <- navbarPage(theme = shinytheme("flatly"), collapsible = TRUE,
                                           multiple = TRUE), 
                               
                               pickerInput("outcome_select2", "Outcome:",   
-                                          choices = c("Cases", "Deaths", "Cases per capita (per 1000)", "Deaths per capita (per 1000)"), 
+                                          choices = c("Cases", "Deaths", "Cases per capita (per 100,000)", "Deaths per capita (per 100,000)"), 
                                           selected = c("Cases"),
                                           multiple = FALSE),
                               
@@ -1398,75 +1456,73 @@ ui <- navbarPage(theme = shinytheme("flatly"), collapsible = TRUE,
                             )
                           )
                  ),
-
-#ethow_new2
-tabPanel("US County plots",
-         
-         sidebarLayout(
-           sidebarPanel(
-             
-             pickerInput("level_select3", "Level:",   
-                         #choices = c("Global", "Continent", "Country"), 
-                         choices = c("County"), #, "foo"), 
-                         selected = c("County"),
-                         multiple = FALSE),
-             
-             pickerInput("level_select3b", "Limit states included:",   
-                         choices = as.character(cv_today_USstates_N[order(-cv_today_USstates_N$cases),]$state), 
-                         options = list(`actions-box` = TRUE, `none-selected-text` = "Please make a selection!"),
-                         #selected = cv_today_USstates_N$state,
-                         selected = "California",
-                         multiple = TRUE), 
-             
-             pickerInput("region_select3", "Counties:",   
-                         #choices = as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state.county), 
-                         choices = subset(as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state.county), cv_today_UScounties_N$state %in% initial.state.set),
-                         options = list(`actions-box` = TRUE, `none-selected-text` = "Please make a selection!"),
-                         #selected = cv_today_UScounties_N$state.county, 
-                         selected = subset(cv_today_UScounties_N$state.county, cv_today_UScounties_N$state %in% initial.state.set),
-                         multiple = TRUE), 
-             
-             pickerInput("outcome_select3", "Outcome:",   
-                         choices = c("Cases", "Deaths", "Cases per capita (per 1000)", "Deaths per capita (per 1000)"), 
-                         selected = c("Cases"),
-                         multiple = FALSE),
-             
-             pickerInput("start_date3", "Type of graph start date:",   
-                         choices = c("Date", "Day of 100th confirmed case", "Day of 10th death"), 
-                         options = list(`actions-box` = TRUE),
-                         selected = "Date",
-                         multiple = FALSE), 
-             
-             pickerInput("log_flag3", "Log scale:",   
-                         choices = c("Off", "On"), 
-                         options = list(`actions-box` = TRUE),
-                         selected = "Off",
-                         multiple = FALSE), 
-             
-             sliderInput("graph_start_date3",
-                         "Graphing start date:",
-                         min = as.Date(cv_min_date,"%Y-%m-%d"),
-                         max = as.Date(current_date,"%Y-%m-%d"),
-                         value=as.Date(cv_min_date),
-                         timeFormat="%Y-%m-%d"),
-             #"Select outcome, regions, and plotting start date from drop-down menues to update plots. Countries with at least 100 confirmed cases are included."
-             "Select outcome, regions, and plotting start date from drop-down menues to update plots."
-           ),
-           
-           mainPanel(
-             tabsetPanel(
-               tabPanel("New", plotlyOutput("region_cases_bar_plot_county")),
-               tabPanel("Cumulative", plotlyOutput("region_cases_line_plot_county"))
-               #tabPanel("Cumulative (log10)", log_flag = TRUE, plotlyOutput("region_cases_line_plot"))
-             )
-           )
-         )
-),
-
-
-
                  
                  
+                 #ethow_new2
+                 tabPanel("US County plots",
+                          
+                          sidebarLayout(
+                            sidebarPanel(
+                              
+                              pickerInput("level_select3", "Level:",   
+                                          #choices = c("Global", "Continent", "Country"), 
+                                          choices = c("County"), #, "foo"), 
+                                          selected = c("County"),
+                                          multiple = FALSE),
+                              
+                              pickerInput("level_select3b", "Limit states included:",   
+                                          choices = as.character(cv_today_USstates_N[order(-cv_today_USstates_N$cases),]$state), 
+                                          options = list(`actions-box` = TRUE, `none-selected-text` = "Please make a selection!"),
+                                          #selected = cv_today_USstates_N$state,
+                                          selected = "California",
+                                          multiple = TRUE), 
+                              
+                              pickerInput("region_select3", "Counties:",   
+                                          #choices = as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state.county), 
+                                          choices = subset(as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state.county), cv_today_UScounties_N$state %in% initial.state.set),
+                                          options = list(`actions-box` = TRUE, `none-selected-text` = "Please make a selection!"),
+                                          #selected = cv_today_UScounties_N$state.county, 
+                                          selected = subset(cv_today_UScounties_N$state.county, cv_today_UScounties_N$state %in% initial.state.set),
+                                          multiple = TRUE), 
+                              
+                              pickerInput("outcome_select3", "Outcome:",   
+                                          choices = c("Cases", "Deaths", "Cases per capita (per 100,000)", "Deaths per capita (per 100,000)"), 
+                                          selected = c("Cases"),
+                                          multiple = FALSE),
+                              
+                              pickerInput("start_date3", "Type of graph start date:",   
+                                          choices = c("Date", "Day of 100th confirmed case", "Day of 10th death"), 
+                                          options = list(`actions-box` = TRUE),
+                                          selected = "Date",
+                                          multiple = FALSE), 
+                              
+                              pickerInput("log_flag3", "Log scale:",   
+                                          choices = c("Off", "On"), 
+                                          options = list(`actions-box` = TRUE),
+                                          selected = "Off",
+                                          multiple = FALSE), 
+                              
+                              sliderInput("graph_start_date3",
+                                          "Graphing start date:",
+                                          min = as.Date(cv_min_date,"%Y-%m-%d"),
+                                          max = as.Date(current_date,"%Y-%m-%d"),
+                                          value=as.Date(cv_min_date),
+                                          timeFormat="%Y-%m-%d"),
+                              #"Select outcome, regions, and plotting start date from drop-down menues to update plots. Countries with at least 100 confirmed cases are included."
+                              "Select outcome, regions, and plotting start date from drop-down menues to update plots."
+                            ),
+                            
+                            mainPanel(
+                              tabsetPanel(
+                                tabPanel("New", plotlyOutput("region_cases_bar_plot_county")),
+                                tabPanel("Cumulative", plotlyOutput("region_cases_line_plot_county"))
+                                #tabPanel("Cumulative (log10)", log_flag = TRUE, plotlyOutput("region_cases_line_plot"))
+                              )
+                            )
+                          )
+                 ),
+                 
+
                                   
                  tabPanel("SARS mapper",
                           div(class="outer",
@@ -1554,6 +1610,8 @@ tabPanel("US County plots",
                             "The map was also featured on the BBC World Service program",tags$a(href="https://www.bbc.co.uk/programmes/w3csym33", "Science in Action."),
                             tags$br(),tags$br(),tags$h4("Code"),
                             "Code and input data used to generate this Shiny mapping tool are available on ",tags$a(href="https://github.com/eparker12/nCoV_tracker", "Github."),
+                            tags$br(),tags$b("US state and county code:")," see below.",
+                            
                             tags$br(),tags$br(),tags$h4("Sources"),
                             tags$b("2019-COVID cases: "), tags$a(href="https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series", "Johns Hopkins Center for Systems Science and Engineering github page,")," with additional information from the ",tags$a(href="https://www.who.int/emergencies/diseases/novel-coronavirus-2019/situation-reports", "WHO's COVID-19 situation reports."),
                             " In previous versions of this site (up to 17th March 2020), updates were based solely on the WHO's situation reports.",tags$br(),
@@ -1566,12 +1624,23 @@ tabPanel("US County plots",
                             The upper limit of this range is used for illustrative purposes in the Outbreak comarisons tab.",tags$br(),
                             tags$b("2014-Ebola cases: "), tags$a(href="https://www.cdc.gov/flu/pandemic-resources/2009-h1n1-pandemic.html", "CDC"),tags$br(),
                             tags$b("Country mapping coordinates: "), tags$a(href="https://gist.github.com/tadast/8827699", "Github"),tags$br(),
+                            tags$b("US state and county data:")," see below.",
+                            
                             tags$br(),tags$br(),tags$h4("Authors"),
                             "Dr Edward Parker, The Vaccine Centre, London School of Hygiene & Tropical Medicine",tags$br(),
                             "Quentin Leclerc, Department of Infectious Disease Epidemiology, London School of Hygiene & Tropical Medicine",tags$br(),
                             tags$br(),tags$br(),tags$h4("Contact"),
                             "edward.parker@lshtm.ac.uk",tags$br(),tags$br(),
-                            tags$img(src = "vac_dark.png", width = "150px", height = "75px"), tags$img(src = "lshtm_dark.png", width = "150px", height = "75px")
+                            tags$img(src = "vac_dark.png", width = "150px", height = "75px"), tags$img(src = "lshtm_dark.png", width = "150px", height = "75px"),tags$br(),
+                            
+                            tags$br(),tags$br(),tags$h4("Forked code for US states and counties"),
+                            "Tabs to display US state and county data added by Thomas Graeber (tgraeber@gmail.com).",tags$br(),tags$br(),
+                            tags$b("Code for US state and county graphs: "), tags$a(href="https://github.com/thomglen", "Graeber GitHub"),tags$br(),tags$br(),
+                            tags$b("US state and county COVID-19 data: "), tags$a(href="https://github.com/nytimes/covid-19-data", "NY Times COVID-19 data (updated daily)"),tags$br(),
+                            tags$b("US state population data (2019 estimates): "), tags$a(href="https://www.census.gov/data/datasets/time-series/demo/popest/2010s-state-total.html#par_textimage_500989927", "US Census website: US states"),tags$br(),
+                            tags$b("US county population data (2019 estimates): "), tags$a(href="https://www.census.gov/newsroom/press-kits/2020/pop-estimates-county-metro.html", "US Census website: US counties"),tags$br(),
+                            tags$b("City and US region population data: "), tags$a(href=" https://worldpopulationreview.com/", "World Population Review"),tags$br(),tags$br(),tags$br(),tags$br()
+                            
                           )
                  )
                  
@@ -1850,11 +1919,27 @@ server = function(input, output, session) {
                         selected = cv_today_100$country)
     }
     
-    #if (input$level_select=="State") {
-    #  updatePickerInput(session = session, inputId = "region_select", 
-    #                    choices = as.character(cv_today_USstates_N[order(-cv_today_USstates_N$cases),]$state), 
-    #                    selected = cv_today_USstates_N$state)
-    #}
+  }, ignoreInit = TRUE)
+  
+  #ethow_new0
+  # update region selections
+  observeEvent(input$level_select0, {
+    if (input$level_select0=="Global") {
+      updatePickerInput(session = session, inputId = "region_select0", 
+                        choices = "Global", selected = "Global")
+    }
+    
+    if (input$level_select0=="Continent") {
+      updatePickerInput(session = session, inputId = "region_select0", 
+                        choices = c("Africa", "Asia", "Europe", "North America", "South America"), 
+                        selected = c("Africa", "Asia", "Europe", "North America", "South America"))
+    }
+    
+    if (input$level_select0=="Country") {
+      updatePickerInput(session = session, inputId = "region_select0", 
+                        choices = as.character(cv_today_100[order(-cv_today_100$cases),]$country), 
+                        selected = cv_today_100$country)
+    }
     
   }, ignoreInit = TRUE)
   
@@ -1943,7 +2028,58 @@ server = function(input, output, session) {
     country_cases_cumulative_log(country_reactive_db(), start_point=input$start_date)
   })
   
-#ethow_new  
+  #ethow_new0
+  # create dataframe with selected countries
+  country_reactive_db0 = reactive({
+    if (input$level_select0=="Global") { 
+      db0 = cv_cases_global
+      db0$region = db0$global_level
+    }
+    if (input$level_select0=="Continent") { 
+      db0 = cv_cases_continent 
+      db0$region = db0$continent
+    }
+    if (input$level_select0=="Country") { 
+      db0 = cv_cases
+      db0$region = db0$country
+    }
+    
+    if (input$outcome_select0=="Cases") { 
+      db0$outcome = db0$cases
+      db0$new_outcome = db0$new_cases
+    }
+    
+    if (input$outcome_select0=="Deaths") { 
+      db0$outcome = db0$deaths 
+      db0$new_outcome = db0$new_deaths 
+    }
+    
+    if (input$outcome_select0=="Cases per capita (per 100,000)") { 
+      db0$outcome = db0$per100k
+      db0$new_outcome = db0$newper100k
+      #db0$region = db0$state.ordered
+    }
+    
+    if (input$outcome_select0=="Deaths per capita (per 100,000)") { 
+      db0$outcome = db0$deaths_per100k 
+      db0$new_outcome = db0$new_deaths_per100k 
+      #db0$region = db0$state.per100k.ordered
+    }
+    
+    db0 %>% filter(region %in% input$region_select0)
+  })
+
+  # country plots II
+  output$region_cases_bar_plot_country <- renderPlotly({
+    region_cases_bar_plot(country_reactive_db0(), start_point=input$start_date0, graph_start_date=input$graph_start_date0, log_flag=input$log_flag0, ylabel = input$outcome_select0)
+  })
+  
+  output$region_cases_line_plot_country <- renderPlotly({
+    region_cases_line_plot(country_reactive_db0(), start_point=input$start_date0, graph_start_date=input$graph_start_date0, log_flag=input$log_flag0, ylabel = input$outcome_select0)
+  })
+  
+  
+  #ethow_new  
   # create dataframe with selected states
   state_reactive_db = reactive({
     if (input$level_select2=="State") { 
@@ -1965,19 +2101,19 @@ server = function(input, output, session) {
     if (input$outcome_select2=="Deaths") { 
       db2$outcome = db2$deaths 
       db2$new_outcome = db2$new_deaths 
-      #db2$region = db2$state.per1k.ordered
+      #db2$region = db2$state.per100k.ordered
     }
     
-    if (input$outcome_select2=="Cases per capita (per 1000)") { 
-      db2$outcome = db2$per1k
-      db2$new_outcome = db2$new_per1k
+    if (input$outcome_select2=="Cases per capita (per 100,000)") { 
+      db2$outcome = db2$per100k
+      db2$new_outcome = db2$new_per100k
       #db2$region = db2$state.ordered
     }
     
-    if (input$outcome_select2=="Deaths per capita (per 1000)") { 
-      db2$outcome = db2$deaths_per1k 
-      db2$new_outcome = db2$new_deaths_per1k 
-      #db2$region = db2$state.per1k.ordered
+    if (input$outcome_select2=="Deaths per capita (per 100,000)") { 
+      db2$outcome = db2$deaths_per100k 
+      db2$new_outcome = db2$new_deaths_per100k 
+      #db2$region = db2$state.per100k.ordered
     }
     
     #print(db2$region)
@@ -2016,17 +2152,17 @@ server = function(input, output, session) {
       #db3$region = db3$state.county.ordered
     }
     
-    if (input$outcome_select3=="Cases per capita (per 1000)") { 
-      db3$outcome = db3$per1k
-      db3$new_outcome = db3$new_per1k
-      #db3$region = db3$state.county.per1k.ordered
-                                    #per1k.rev.ordered
+    if (input$outcome_select3=="Cases per capita (per 100,000)") { 
+      db3$outcome = db3$per100k
+      db3$new_outcome = db3$new_per100k
+      #db3$region = db3$state.county.per100k.ordered
+                                    #per100k.rev.ordered
     }
     
-    if (input$outcome_select3=="Deaths per capita (per 1000)") { 
-      db3$outcome = db3$deaths_per1k 
-      db3$new_outcome = db3$new_deaths_per1k 
-      #db3$region = db3$state.county.per1k.ordered
+    if (input$outcome_select3=="Deaths per capita (per 100,000)") { 
+      db3$outcome = db3$deaths_per100k 
+      db3$new_outcome = db3$new_deaths_per100k 
+      #db3$region = db3$state.county.per100k.ordered
     }
     
     #print(db3$region)
