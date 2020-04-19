@@ -5,8 +5,8 @@ account: graeber
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 2091496
-bundleId: 3003733
+bundleId: 3033086
 url: https://graeber.shinyapps.io/nCoV_tracker/
-when: 1586712802.05753
+when: 1587267186.63197
 asMultiple: FALSE
 asStatic: FALSE
