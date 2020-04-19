@@ -1479,7 +1479,7 @@ ui <- navbarPage(theme = shinytheme("flatly"), collapsible = TRUE,
                               
                               pickerInput("region_select3", "Counties:",   
                                           #choices = as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state.county), 
-                                          choices = subset(as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state.county), cv_today_UScounties_N$state %in% initial.state.set),
+                                          choices = subset(as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state.county), cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state %in% initial.state.set),
                                           options = list(`actions-box` = TRUE, `none-selected-text` = "Please make a selection!"),
                                           #selected = cv_today_UScounties_N$state.county, 
                                           selected = subset(cv_today_UScounties_N$state.county, cv_today_UScounties_N$state %in% initial.state.set),
@@ -1942,7 +1942,36 @@ server = function(input, output, session) {
     }
     
   }, ignoreInit = TRUE)
-  
+ 
+  observeEvent(input$outcome_select0, {
+    
+    selected_current <- input$region_select0
+    if (input$level_select0=="Country" && input$outcome_select0=="Cases") {
+      updatePickerInput(session = session, inputId = "region_select0", 
+                        choices = as.character(cv_today_100[order(-cv_today_100$cases),]$country), 
+                        selected = selected_current)
+    }
+    
+    if (input$level_select0=="Country" && input$outcome_select0=="Deaths") {
+      updatePickerInput(session = session, inputId = "region_select0", 
+                        choices = as.character(cv_today_100[order(-cv_today_100$deaths),]$country), 
+                        selected = selected_current)
+    }
+    
+    if (input$level_select0=="Country" && input$outcome_select0=="Cases per capita (per 100,000)") {
+      updatePickerInput(session = session, inputId = "region_select0", 
+                        choices = as.character(cv_today_100[order(-cv_today_100$per100k),]$country), 
+                        selected = selected_current)
+    }
+    
+    if (input$level_select0=="Country" && input$outcome_select0=="Deaths per capita (per 100,000)") {
+      updatePickerInput(session = session, inputId = "region_select0", 
+                        choices = as.character(cv_today_100[order(-cv_today_100$deaths_per100k),]$country), 
+                        selected = selected_current)
+    }
+    
+  }, ignoreInit = TRUE)
+
   #ethow_new
   # update region selections
   observeEvent(input$level_select2, {
@@ -1951,6 +1980,35 @@ server = function(input, output, session) {
       updatePickerInput(session = session, inputId = "region_select2", 
                         choices = as.character(cv_today_USstates_N[order(-cv_today_USstates_N$cases),]$state), 
                         selected = cv_today_USstates_N$state)
+    }
+  
+  }, ignoreInit = TRUE)
+  
+  observeEvent(input$outcome_select2, {
+    
+    selected_current <- input$region_select2
+    if (input$outcome_select2=="Cases") {
+      updatePickerInput(session = session, inputId = "region_select2", 
+                        choices = as.character(cv_today_USstates_N[order(-cv_today_USstates_N$cases),]$state), 
+                        selected = selected_current)
+    }
+    
+    if (input$outcome_select2=="Deaths") {
+      updatePickerInput(session = session, inputId = "region_select2", 
+                        choices = as.character(cv_today_USstates_N[order(-cv_today_USstates_N$deaths),]$state), 
+                        selected = selected_current)
+    }
+    
+    if (input$outcome_select2=="Cases per capita (per 100,000)") {
+      updatePickerInput(session = session, inputId = "region_select2", 
+                        choices = as.character(cv_today_USstates_N[order(-cv_today_USstates_N$per100k),]$state), 
+                        selected = selected_current)
+    }
+    
+    if (input$outcome_select2=="Deaths per capita (per 100,000)") {
+      updatePickerInput(session = session, inputId = "region_select2", 
+                        choices = as.character(cv_today_USstates_N[order(-cv_today_USstates_N$deaths_per100k),]$state), 
+                        selected = selected_current)
     }
     
     #if (input$level_select2=="foo") {
@@ -1967,8 +2025,46 @@ server = function(input, output, session) {
     
     if (input$level_select3=="County") {
       updatePickerInput(session = session, inputId = "region_select3", 
-                        choices = as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state.county), 
-                        selected = cv_today_UScounties_N$state.county) 
+                        #choices = subset(as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state.county), cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state %in% current_states), 
+                        choices = subset(as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state.county), cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state %in% initial.state.set),
+                        #selected = cv_today_UScounties_N$state.county) 
+                        selected = subset(cv_today_UScounties_N$state.county, cv_today_UScounties_N$state %in% initial.state.set))
+    }
+
+  }, ignoreInit = TRUE)
+  
+  observeEvent(input$outcome_select3, {
+      
+    selected_current <- input$region_select3
+    current_states <- input$level_select3b
+    #print(selected_current)
+    #print(current_states)
+    if (input$outcome_select3=="Cases") {
+      updatePickerInput(session = session, inputId = "region_select3", 
+                        #choices = as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state.county), 
+                        choices = subset(as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state.county), cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state %in% current_states),
+                        selected = selected_current)
+    }
+    
+    if (input$outcome_select3=="Deaths") {
+      updatePickerInput(session = session, inputId = "region_select3", 
+                        #choices = as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$deaths),]$state.county), 
+                        choices = subset(as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$deaths),]$state.county), cv_today_UScounties_N[order(-cv_today_UScounties_N$deaths),]$state %in% current_states),
+                        selected = selected_current) 
+    }
+    
+    if (input$outcome_select3=="Cases per capita (per 100,000)") {
+      updatePickerInput(session = session, inputId = "region_select3", 
+                        #choices = as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$per100k),]$state.county), 
+                        choices = subset(as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$per100k),]$state.county), cv_today_UScounties_N[order(-cv_today_UScounties_N$per100k),]$state %in% current_states),
+                        selected = selected_current) 
+    }
+    
+    if (input$outcome_select3=="Deaths per capita (per 100,000)") {
+      updatePickerInput(session = session, inputId = "region_select3", 
+                        #choices = as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$deaths_per100k),]$state.county), 
+                        choices = subset(as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$deaths_per100k),]$state.county), cv_today_UScounties_N[order(-cv_today_UScounties_N$deaths_per100k),]$state %in% current_states),
+                        selected = selected_current) 
     }
     
   }, ignoreInit = TRUE)
