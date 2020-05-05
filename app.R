@@ -1693,7 +1693,7 @@ server = function(input, output, session) {
   })
   
   output$reactive_death_count <- renderText({
-    paste0(prettyNum(sum(reactive_db()$death), big.mark=","), " deaths")
+    paste0(prettyNum(sum(reactive_db()$deaths), big.mark=","), " deaths")
   })
   
   output$reactive_recovered_count <- renderText({
