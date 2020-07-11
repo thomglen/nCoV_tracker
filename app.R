@@ -6,7 +6,7 @@
 # https://rviews.rstudio.com/2019/10/09/building-interactive-world-maps-in-shiny/
 # https://github.com/rstudio/shiny-examples/tree/master/063-superzip-example
 
-#setwd("~/Dropbox/glab/cv/R/fork/nCoV_tracker")
+#setwd("~/Dropbox/glab/cv/R/nCoV_tracker - fork/nCoV_tracker")
 
 # load required packages ####
 if(!require(magrittr)) install.packages("magrittr", repos = "http://cran.us.r-project.org")
@@ -32,6 +32,8 @@ if(!require(shinythemes)) install.packages("shinythemes", repos = "http://cran.u
 if(!require(lubridate)) install.packages("lubridate")
 if(!require(RCurl)) install.packages("RCurl")
 
+if(!require(zoo)) install.packages("zoo")
+#library(DataCombine)
 
 
 ############################### #
@@ -381,14 +383,14 @@ county_cases_plot = function(cv_cases, start_point=c("Date", "Day of 100th confi
 }
 
 
-# function to line plot new_outcome by region
+# function to bar plot new_outcome by region
 region_cases_bar_plot = function(cv_cases, start_point=c("Date", "Day of 100th confirmed case", "Day of 10th death"), graph_start_date, log_flag = FALSE, ylabel = "Outcome") {
   
   #to align x-axis labeles and x-axis data
   #something related to: https://stackoverflow.com/questions/42973629/ggplot-date-scales-shifts-one-month-forward
   #another lead could be vjust, but not as likely: #theme(axis.text.x.top = element_text(vjust = 0.5))
  # offset = 7 #may need to be a different number if x-axis ticks are different from 1 week
-  offset = 0 #may need to be a different number if x-axis ticks are different from 1 week
+  offset = 0 #may need to be a different number to overcome bug in plot axes tick mark labeling
   
   if (start_point=="Date") {
     g = ggplot(cv_cases, aes(x = date+offset, y = new_outcome, fill = region, #order = region,
@@ -429,8 +431,8 @@ region_cases_bar_plot = function(cv_cases, start_point=c("Date", "Day of 100th c
 
 # function to line plot outcome by region
 region_cases_line_plot = function(cv_cases, start_point=c("Date", "Day of 100th confirmed case", "Day of 10th death"), graph_start_date, log_flag = FALSE, ylabel = "Outcome") {
-
-    #to align x-axis labeles and x-axis data
+  
+  #to align x-axis labeles and x-axis data
   #something related to: https://stackoverflow.com/questions/42973629/ggplot-date-scales-shifts-one-month-forward
   #another lead could be vjust, but not as likely: #theme(axis.text.x.top = element_text(vjust = 0.5))
   offset = 7 #may need to be a different number if x-axis ticks are different from 1 week
@@ -444,7 +446,7 @@ region_cases_line_plot = function(cv_cases, start_point=c("Date", "Day of 100th 
   #print(start_point)
   #print(cv_min_date)
   #print(current_date+1)
-    
+  
   if (start_point=="Day of 100th confirmed case") {
     cv_cases = subset( cv_cases, days_since_case100>0)
     #region = region[1:length( cv_cases$outcome)]
@@ -462,7 +464,7 @@ region_cases_line_plot = function(cv_cases, start_point=c("Date", "Day of 100th 
   
   cols = cv_cases$color.hex
   names(cols) <- cv_cases$region
-    
+  
   g1 = g +
     #geom_bar(position="stack", stat="identity") + 
     geom_line(aes(color=region)) +
@@ -472,10 +474,63 @@ region_cases_line_plot = function(cv_cases, start_point=c("Date", "Day of 100th 
     scale_fill_manual(values=cols) +
     scale_color_manual(values=cols) +
     theme(legend.title = element_blank(), legend.position = "", plot.title = element_text(size=10))
-
+  
   if (log_flag == TRUE || log_flag == "On") {g1 = g1 + scale_y_continuous(trans="log10")}
   
-    ggplotly(g1, tooltip = c("text")) %>% layout(legend = list(font = list(size=11)))
+  ggplotly(g1, tooltip = c("text")) %>% layout(legend = list(font = list(size=11)))
+}
+
+
+#ethow region_cases_line_plot_new
+# function to line plot new_outcome by region, i.e., new cases or new deaths
+region_cases_line_plot_new = function(cv_cases, start_point=c("Date", "Day of 100th confirmed case", "Day of 10th death"), graph_start_date, log_flag = FALSE, ylabel = "New Outcomes") {
+  
+  #to align x-axis labeles and x-axis data
+  #something related to: https://stackoverflow.com/questions/42973629/ggplot-date-scales-shifts-one-month-forward
+  #another lead could be vjust, but not as likely: #theme(axis.text.x.top = element_text(vjust = 0.5))
+  offset = 7 #may need to be a different number if x-axis ticks are different from 1 week
+  
+  if (start_point=="Date") {
+    g = ggplot(cv_cases, aes(x = date+offset, y = new_outcome, group = region, fill = region, #order = region,
+                             text = paste0(format(date, "%d %B %Y"), "\n", region, ": ",new_outcome))) + 
+      xlim(c(graph_start_date+offset,current_date+1+offset)) +
+      xlab("Date")
+  }
+  #print(start_point)
+  #print(cv_min_date)
+  #print(current_date+1)
+  
+  if (start_point=="Day of 100th confirmed case") {
+    cv_cases = subset( cv_cases, days_since_case100>0)
+    #region = region[1:length( cv_cases$new_outcome)]
+    g = ggplot(cv_cases, aes(x = days_since_case100, y = new_outcome, group = region, fill = region, 
+                             text = paste0("Day ",days_since_case100, "\n", region, ": ",new_outcome)))+
+      xlab("Days since 100th confirmed case")
+  }
+  
+  if (start_point=="Day of 10th death") {
+    cv_cases = subset( cv_cases, days_since_death10>0)
+    g = ggplot(cv_cases, aes(x = days_since_death10, y = new_outcome, group = region, fill = region, 
+                             text = paste0("Day ",days_since_death10, "\n", region, ": ",new_outcome))) +
+      xlab("Days since 10th death")
+  }
+  
+  cols = cv_cases$color.hex
+  names(cols) <- cv_cases$region
+  
+  g1 = g +
+    #geom_bar(position="stack", stat="identity") + 
+    geom_line(aes(color=region)) +
+    geom_point(size=0.5, shape=20, aes(color=region)) +
+    
+    ylab(ylabel) + theme_bw() + 
+    scale_fill_manual(values=cols) +
+    scale_color_manual(values=cols) +
+    theme(legend.title = element_blank(), legend.position = "", plot.title = element_text(size=10))
+  
+  if (log_flag == TRUE || log_flag == "On") {g1 = g1 + scale_y_continuous(trans="log10")}
+  
+  ggplotly(g1, tooltip = c("text")) %>% layout(legend = list(font = list(size=11)))
 }
 
 
@@ -687,6 +742,18 @@ cv_cases_USstates <- cv_cases_USstates %>%
   mutate(new_deaths = deaths - lag(deaths, default = first(deaths))) %>%
   ungroup()
 
+cv_cases_USstates = cv_cases_USstates %>%
+  group_by(state) %>%
+  arrange(date) %>%
+  mutate(new_cases.7 = rollmean(x = new_cases, 7, align = "right", fill = NA)) %>%
+  ungroup()
+
+cv_cases_USstates = cv_cases_USstates %>%
+  group_by(state) %>%
+  arrange(date) %>%
+  mutate(new_deaths.7 = rollmean(x = new_deaths, 7, align = "right", fill = NA)) %>%
+  ungroup()
+
 #cv_cases_USstates <- cv_cases_USstates %>%
 #  group_by(state) %>%
 #  arrange(date) %>%
@@ -704,6 +771,9 @@ cv_cases_USstates$deaths_per100k = as.numeric(cv_cases_USstates$deaths * 100000/
 
 cv_cases_USstates$new_per100k = as.numeric(cv_cases_USstates$new_cases * 100000/(state_populations[as.character(cv_cases_USstates$state)]))
 cv_cases_USstates$new_deaths_per100k = as.numeric(cv_cases_USstates$new_deaths * 100000/(state_populations[as.character(cv_cases_USstates$state)]))
+
+cv_cases_USstates$new.7_per100k = as.numeric(cv_cases_USstates$new_cases.7 * 100000/(state_populations[as.character(cv_cases_USstates$state)]))
+cv_cases_USstates$new_deaths.7_per100k = as.numeric(cv_cases_USstates$new_deaths.7 * 100000/(state_populations[as.character(cv_cases_USstates$state)]))
 
 cv_cases_USstates_subset <- cv_cases_USstates
 
@@ -956,6 +1026,18 @@ cv_cases_UScounties <- cv_cases_UScounties %>%
   mutate(new_deaths = deaths - lag(deaths, default = first(deaths))) %>%
   ungroup()
 
+cv_cases_UScounties = cv_cases_UScounties %>%
+  group_by(state.county) %>%
+  arrange(date) %>%
+  mutate(new_cases.7 = rollmean(x = new_cases, 7, align = "right", fill = NA)) %>%
+  ungroup()
+
+cv_cases_UScounties = cv_cases_UScounties %>%
+  group_by(state.county) %>%
+  arrange(date) %>%
+  mutate(new_deaths.7 = rollmean(x = new_deaths, 7, align = "right", fill = NA)) %>%
+  ungroup()
+
 #cv_cases_UScounties <- cv_cases_UScounties %>%
 #  group_by(county) %>%
 #  arrange(date) %>%
@@ -973,6 +1055,9 @@ cv_cases_UScounties$deaths_per100k = as.numeric(cv_cases_UScounties$deaths * 100
 #ETHOW
 cv_cases_UScounties$new_per100k = as.numeric(cv_cases_UScounties$new_cases * 100000/(as.numeric(county_populations[as.character(cv_cases_UScounties$state.county)])))
 cv_cases_UScounties$new_deaths_per100k = as.numeric(cv_cases_UScounties$new_deaths * 100000/(as.numeric(county_populations[as.character(cv_cases_UScounties$state.county)])))
+
+cv_cases_UScounties$new.7_per100k = as.numeric(cv_cases_UScounties$new_cases.7 * 100000/(as.numeric(county_populations[as.character(cv_cases_UScounties$state.county)])))
+cv_cases_UScounties$new_deaths.7_per100k = as.numeric(cv_cases_UScounties$new_deaths.7 * 100000/(as.numeric(county_populations[as.character(cv_cases_UScounties$state.county)])))
 
 
 cv_cases_UScounties_subset <- cv_cases_UScounties
@@ -1365,7 +1450,7 @@ ui <- navbarPage(theme = shinytheme("flatly"), collapsible = TRUE,
                                           multiple = TRUE), 
                             
                               pickerInput("outcome_select0", "Outcome:",   
-                                          choices = c("Cases", "Deaths", "Cases per capita (per 100,000)", "Deaths per capita (per 100,000)"), 
+                                          choices = c("Cases", "Cases 7 day average", "Deaths", "Cases per capita (per 100,000)", "Cases 7 day average per capita", "Deaths per capita (per 100,000)"), 
                                           selected = c("Cases"),
                                           multiple = FALSE),
                               
@@ -1421,7 +1506,7 @@ ui <- navbarPage(theme = shinytheme("flatly"), collapsible = TRUE,
                                           multiple = TRUE), 
                               
                               pickerInput("outcome_select2", "Outcome:",   
-                                          choices = c("Cases", "Deaths", "Cases per capita (per 100,000)", "Deaths per capita (per 100,000)"), 
+                                          choices = c("Cases", "Cases 7 day average", "Deaths", "Cases per capita (per 100,000)", "Cases 7 day average per capita", "Deaths per capita (per 100,000)"), 
                                           selected = c("Cases"),
                                           multiple = FALSE),
                               
@@ -1486,7 +1571,7 @@ ui <- navbarPage(theme = shinytheme("flatly"), collapsible = TRUE,
                                           multiple = TRUE), 
                               
                               pickerInput("outcome_select3", "Outcome:",   
-                                          choices = c("Cases", "Deaths", "Cases per capita (per 100,000)", "Deaths per capita (per 100,000)"), 
+                                          choices = c("Cases", "Cases 7 day average", "Deaths", "Cases per capita (per 100,000)", "Cases 7 day average per capita", "Deaths per capita (per 100,000)"), 
                                           selected = c("Cases"),
                                           multiple = FALSE),
                               
@@ -1970,6 +2055,18 @@ server = function(input, output, session) {
                         selected = selected_current)
     }
     
+    if (input$level_select0=="Country" && input$outcome_select0=="Cases 7 day average") {
+      updatePickerInput(session = session, inputId = "region_select0", 
+                        choices = as.character(cv_today_100[order(-cv_today_100$cases),]$country), 
+                        selected = selected_current)
+    }
+    
+    if (input$level_select0=="Country" && input$outcome_select0=="Cases 7 day average per capita") {
+      updatePickerInput(session = session, inputId = "region_select0", 
+                        choices = as.character(cv_today_100[order(-cv_today_100$per100k),]$country), 
+                        selected = selected_current)
+    }
+    
   }, ignoreInit = TRUE)
 
   #ethow_new
@@ -2010,6 +2107,18 @@ server = function(input, output, session) {
                         choices = as.character(cv_today_USstates_N[order(-cv_today_USstates_N$deaths_per100k),]$state), 
                         selected = selected_current)
     }
+
+    if (input$outcome_select2=="Cases 7 day average") {
+      updatePickerInput(session = session, inputId = "region_select2", 
+                        choices = as.character(cv_today_USstates_N[order(-cv_today_USstates_N$cases),]$state), 
+                        selected = selected_current)
+    }
+    
+    if (input$outcome_select2=="Cases 7 day average per capita") {
+      updatePickerInput(session = session, inputId = "region_select2", 
+                        choices = as.character(cv_today_USstates_N[order(-cv_today_USstates_N$per100k),]$state), 
+                        selected = selected_current)
+    }
     
     #if (input$level_select2=="foo") {
     #  updatePickerInput(session = session, inputId = "region_select2", 
@@ -2035,8 +2144,8 @@ server = function(input, output, session) {
   
   observeEvent(input$outcome_select3, {
       
-    selected_current <- input$region_select3
-    current_states <- input$level_select3b
+    selected_current <- input$region_select3  # ("region_select3", "Counties:",   
+    current_states <- input$level_select3b   # ("level_select3b", "Limit states included:",
     #print(selected_current)
     #print(current_states)
     if (input$outcome_select3=="Cases") {
@@ -2067,9 +2176,25 @@ server = function(input, output, session) {
                         selected = selected_current) 
     }
     
+    if (input$outcome_select3=="Cases 7 day average") {
+      updatePickerInput(session = session, inputId = "region_select3", 
+                        choices = subset(as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state.county), cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state %in% current_states),
+                        selected = selected_current)
+    }
+    
+    if (input$outcome_select3=="Cases 7 day average per capita") {
+      updatePickerInput(session = session, inputId = "region_select3", 
+                        choices = subset(as.character(cv_today_UScounties_N[order(-cv_today_UScounties_N$per100k),]$state.county), cv_today_UScounties_N[order(-cv_today_UScounties_N$cases),]$state %in% current_states),
+                        selected = selected_current)
+    }
+    
+    
   }, ignoreInit = TRUE)
   
-  observeEvent(input$level_select3b, {
+  observeEvent(input$level_select3b, {  #when changing the states included in the county list 'limit states included'
+    
+    ###?selected_current <- input$region_select3  # ("region_select3", "Counties:",   
+    ###?current_states <- input$level_select3b   # ("level_select3b", "Limit states included:",
     
     #if (input$level_select3b=="State") {
       updatePickerInput(session = session, inputId = "region_select3", 
@@ -2162,12 +2287,18 @@ server = function(input, output, session) {
       #db0$region = db0$state.per100k.ordered
     }
     
+    if (input$outcome_select0=="Cases 7 day average") { 
+      db0$outcome = db0$cases
+      db0$new_outcome = db0$new_cases.7
+    }
+    
     db0 %>% filter(region %in% input$region_select0)
   })
 
   # country plots II
   output$region_cases_bar_plot_country <- renderPlotly({
-    region_cases_bar_plot(country_reactive_db0(), start_point=input$start_date0, graph_start_date=input$graph_start_date0, log_flag=input$log_flag0, ylabel = input$outcome_select0)
+    #region_cases_bar_plot(country_reactive_db0(), start_point=input$start_date0, graph_start_date=input$graph_start_date0, log_flag=input$log_flag0, ylabel = input$outcome_select0)
+    region_cases_line_plot_new(country_reactive_db0(), start_point=input$start_date0, graph_start_date=input$graph_start_date0, log_flag=input$log_flag0, ylabel = input$outcome_select0)
   })
   
   output$region_cases_line_plot_country <- renderPlotly({
@@ -2212,6 +2343,18 @@ server = function(input, output, session) {
       #db2$region = db2$state.per100k.ordered
     }
     
+    if (input$outcome_select2=="Cases 7 day average") { 
+      db2$outcome = db2$cases
+      db2$new_outcome = db2$new_cases.7
+      #db2$region = db2$state.ordered
+    }
+    
+    if (input$outcome_select2=="Cases 7 day average per capita") { 
+      db2$outcome = db2$per100k
+      db2$new_outcome = db2$new.7_per100k
+      #db2$region = db2$state.ordered
+    }
+    
     #print(db2$region)
     #print(input$region_select2)
     #print(db2)
@@ -2220,7 +2363,8 @@ server = function(input, output, session) {
   
   # state plots
   output$region_cases_bar_plot_state <- renderPlotly({
-    region_cases_bar_plot(state_reactive_db(), start_point=input$start_date2, graph_start_date=input$graph_start_date2, log_flag=input$log_flag2, ylabel = input$outcome_select2)
+    #region_cases_bar_plot(state_reactive_db(), start_point=input$start_date2, graph_start_date=input$graph_start_date2, log_flag=input$log_flag2, ylabel = input$outcome_select2)
+    region_cases_line_plot_new(state_reactive_db(), start_point=input$start_date2, graph_start_date=input$graph_start_date2, log_flag=input$log_flag2, ylabel = input$outcome_select2)
   })
 
   output$region_cases_line_plot_state <- renderPlotly({
@@ -2261,6 +2405,18 @@ server = function(input, output, session) {
       #db3$region = db3$state.county.per100k.ordered
     }
     
+    if (input$outcome_select3=="Cases 7 day average") { 
+      db3$outcome = db3$cases
+      db3$new_outcome = db3$new_cases.7
+      #db3$region = db3$state.county.ordered
+    }
+    
+    if (input$outcome_select3=="Cases 7 day average per capita") { 
+      db3$outcome = db3$per100k
+      db3$new_outcome = db3$new.7_per100k
+      #db3$region = db3$state.county.ordered
+    }
+    
     #print(db3$region)
     #print(input$region_select2)
     #print(db3)
@@ -2269,7 +2425,8 @@ server = function(input, output, session) {
   
   # county plots
   output$region_cases_bar_plot_county <- renderPlotly({
-    region_cases_bar_plot(county_reactive_db(), start_point=input$start_date3, graph_start_date=input$graph_start_date3, log_flag=input$log_flag3, ylabel = input$outcome_select3)
+    #region_cases_bar_plot(county_reactive_db(), start_point=input$start_date3, graph_start_date=input$graph_start_date3, log_flag=input$log_flag3, ylabel = input$outcome_select3)
+    region_cases_line_plot_new(county_reactive_db(), start_point=input$start_date3, graph_start_date=input$graph_start_date3, log_flag=input$log_flag3, ylabel = input$outcome_select3)
   })
   
   output$region_cases_line_plot_county <- renderPlotly({
